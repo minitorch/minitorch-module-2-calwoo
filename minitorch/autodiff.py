@@ -71,6 +71,8 @@ def topological_sort(variable: Variable) -> Iterable[Variable]:
     queue = [variable]
     while len(queue) > 0:
         v = queue.pop(0)
+        if v.is_constant():
+            continue
         if v.unique_id not in marked:
             toposorted.append(v)
             marked.add(v.unique_id)
@@ -101,6 +103,8 @@ def backpropagate(variable: Variable, deriv: Any) -> None:
             # call backward
             ds = var.chain_rule(derivatives[var.unique_id])
             for input_v, deriv in ds:
+                if input_v.is_constant():
+                    continue
                 if input_v.unique_id in derivatives:
                     derivatives[input_v.unique_id] += deriv
                 else:
