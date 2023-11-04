@@ -44,7 +44,7 @@ def index_to_position(index: Index, strides: Strides) -> int:
     """
 
     # TODO: Implement for Task 2.1.
-    raise NotImplementedError("Need to implement for Task 2.1")
+    return np.dot(index, strides)
 
 
 def to_index(ordinal: int, shape: Shape, out_index: OutIndex) -> None:
@@ -61,7 +61,12 @@ def to_index(ordinal: int, shape: Shape, out_index: OutIndex) -> None:
 
     """
     # TODO: Implement for Task 2.1.
-    raise NotImplementedError("Need to implement for Task 2.1")
+    num_dims = shape.shape[0]
+    for i in range(num_dims):
+        s = shape[i]
+        pos = ordinal % s
+        ordinal = ordinal // s
+        out_index[i] = pos
 
 
 def broadcast_index(
@@ -84,7 +89,13 @@ def broadcast_index(
         None
     """
     # TODO: Implement for Task 2.2.
-    raise NotImplementedError("Need to implement for Task 2.2")
+    num_dims = shape.shape[0]
+    for i in range(1, num_dims+1):
+        size = shape[-i]
+        if size == big_shape[-i]:
+            out_index[-i] = big_index[-i]
+        else:
+            out_index[-i] = 0
 
 
 def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:
@@ -102,7 +113,28 @@ def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:
         IndexingError : if cannot broadcast
     """
     # TODO: Implement for Task 2.2.
-    raise NotImplementedError("Need to implement for Task 2.2")
+    # rule 1: pad unequal shapes with 1 on left
+    if len(shape1) > len(shape2):
+        diff = len(shape1) - len(shape2)
+        shape2 = tuple([1] * diff + list(shape2))
+    elif len(shape2) > len(shape1):
+        diff = len(shape2) - len(shape1)
+        shape1 = tuple([1] * diff + list(shape1))
+
+    # rule 2: if dimensions unequal, 1s become other corresponding dim
+    new_shape1, new_shape2 = list(shape1), list(shape2)
+    for i, dim in enumerate(shape1):
+        if dim == 1:
+            new_shape1[i] = shape2[i]
+    for i, dim in enumerate(shape2):
+        if dim == 1:
+            new_shape2[i] = shape1[i]
+
+    # rule 3: if shapes still unequal, throw error
+    if new_shape1 != new_shape2:
+        raise IndexingError()
+
+    return tuple(new_shape1)
 
 
 def strides_from_shape(shape: UserShape) -> UserStrides:
@@ -223,7 +255,12 @@ class TensorData:
         ), f"Must give a position to each dimension. Shape: {self.shape} Order: {order}"
 
         # TODO: Implement for Task 2.1.
-        raise NotImplementedError("Need to implement for Task 2.1")
+        new_shape = []
+        new_strides = []
+        for pos in order:
+            new_shape.append(self.shape[pos])
+            new_strides.append(self.strides[pos])
+        return TensorData(self._storage, tuple(new_shape), tuple(new_strides))
 
     def to_string(self) -> str:
         s = ""

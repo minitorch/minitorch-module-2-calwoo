@@ -268,8 +268,26 @@ def tensor_map(fn: Callable[[float], float]) -> Any:
         in_shape: Shape,
         in_strides: Strides,
     ) -> None:
-        # TODO: Implement for Task 2.3.
-        raise NotImplementedError("Need to implement for Task 2.3")
+        # get full broadcasted shape
+        broadcasted_shape = np.array(shape_broadcast(in_shape, out_shape))
+        size = np.prod(broadcasted_shape)
+
+        # for each position (of broadcasted shape), get broadcast index of data
+        for i in range(size):
+            broad_out_index = np.zeros_like(broadcasted_shape)
+            to_index(i, broadcasted_shape, broad_out_index)
+            in_out_index = np.zeros_like(in_shape)
+            broadcast_index(broad_out_index, broadcasted_shape, in_shape, in_out_index)
+            in_pos = index_to_position(in_out_index, in_strides)
+            in_data = in_storage[in_pos]
+            # map it
+            out_data = fn(in_data)
+            # get broadcast index of output
+            out_out_index = np.zeros_like(out_shape)
+            broadcast_index(broad_out_index, broadcasted_shape, out_shape, out_out_index)
+            out_pos = index_to_position(out_out_index, out_strides)
+            # assign to out
+            out[out_pos] = out_data
 
     return _map
 
