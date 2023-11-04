@@ -268,8 +268,26 @@ def tensor_map(fn: Callable[[float], float]) -> Any:
         in_shape: Shape,
         in_strides: Strides,
     ) -> None:
-        # TODO: Implement for Task 2.3.
-        raise NotImplementedError("Need to implement for Task 2.3")
+        # get full broadcasted shape
+        broadcasted_shape = np.array(shape_broadcast(in_shape, out_shape))
+        size = np.prod(broadcasted_shape)
+
+        # for each position (of broadcasted shape), get broadcast index of data
+        for i in range(size):
+            broad_out_index = np.zeros_like(broadcasted_shape)
+            to_index(i, broadcasted_shape, broad_out_index)
+            in_out_index = np.zeros_like(in_shape)
+            broadcast_index(broad_out_index, broadcasted_shape, in_shape, in_out_index)
+            in_pos = index_to_position(in_out_index, in_strides)
+            in_data = in_storage[in_pos]
+            # map it
+            out_data = fn(in_data)
+            # get broadcast index of output
+            out_out_index = np.zeros_like(out_shape)
+            broadcast_index(broad_out_index, broadcasted_shape, out_shape, out_out_index)
+            out_pos = index_to_position(out_out_index, out_strides)
+            # assign to out
+            out[out_pos] = out_data
 
     return _map
 
@@ -318,8 +336,28 @@ def tensor_zip(fn: Callable[[float, float], float]) -> Any:
         b_shape: Shape,
         b_strides: Strides,
     ) -> None:
-        # TODO: Implement for Task 2.3.
-        raise NotImplementedError("Need to implement for Task 2.3")
+        size = np.prod(out_shape)
+
+        # for each position (of broadcasted shape), get broadcast index of data
+        for i in range(size):
+            out_index = np.zeros_like(out_shape)
+            to_index(i, out_shape, out_index)
+
+            a_out_index = np.zeros_like(a_shape)
+            broadcast_index(out_index, out_shape, a_shape, a_out_index)
+            a_pos = index_to_position(a_out_index, a_strides)
+            a_data = a_storage[a_pos]
+
+            b_out_index = np.zeros_like(b_shape)
+            broadcast_index(out_index, out_shape, b_shape, b_out_index)
+            b_pos = index_to_position(b_out_index, b_strides)
+            b_data = b_storage[b_pos]
+            # map it
+            out_data = fn(a_data, b_data)
+            # get broadcast index of output
+            out_pos = index_to_position(out_index, out_strides)
+            # assign to out
+            out[out_pos] = out_data
 
     return _zip
 
@@ -354,8 +392,27 @@ def tensor_reduce(fn: Callable[[float, float], float]) -> Any:
         a_strides: Strides,
         reduce_dim: int,
     ) -> None:
-        # TODO: Implement for Task 2.3.
-        raise NotImplementedError("Need to implement for Task 2.3")
+        reduce_size = a_shape[reduce_dim]
+        size = np.prod(out_shape)
+        for i in range(size):
+            # get index for pos in out
+            out_index = np.zeros_like(out_shape)
+            to_index(i, out_shape, out_index)
+
+            # perform reduce
+            acc = None
+            for k in range(reduce_size):
+                reduce_index = np.copy(out_index)
+                reduce_index[reduce_dim] = k
+                reduce_pos = index_to_position(reduce_index, a_strides)
+                if acc is None:
+                    acc = a_storage[reduce_pos]
+                else:
+                    acc = fn(acc, a_storage[reduce_pos])
+            
+            # get out position
+            out_pos = index_to_position(out_index, out_strides)
+            out[out_pos] = acc
 
     return _reduce
 
